@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "Mobile App Auth",
+    "slug": "mobile-app-auth",
+    "scheme": "mobileappauth",
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
