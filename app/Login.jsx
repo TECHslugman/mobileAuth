@@ -35,7 +35,7 @@ export default function Login() {
 
             await SecureStore.setItemAsync('userToken', data.accessToken);
             Alert.alert('Success', 'Logged in successfully');
-            router.replace('/Home');
+            router.replace('/Dashboard');
             console.log("Entered HOME");
 
         } catch (err) {

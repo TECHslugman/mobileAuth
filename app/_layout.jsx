@@ -1,12 +1,16 @@
+// app/_layout.jsx
 import { Stack } from 'expo-router';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-export default function Layout() {
+export default function RootLayout() {
   return (
-    <Stack
-      screenOptions={{
-        animation: 'fade_from_bottom', 
-        headerShown: false, 
-      }}
-    />
+    <SafeAreaProvider>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: 'fade_from_bottom',
+        }}
+      />
+    </SafeAreaProvider>
   );
 }
