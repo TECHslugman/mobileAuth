@@ -140,12 +140,25 @@ export default function AgencyDetails() {
         {/* Process */}
         <Text style={styles.sectionTitle}>Process</Text>
         <View style={styles.card}>
-          {data.process.map((p, idx) => (
-            <View key={String(idx)} style={styles.processRow}>
-              <Dot />
-              <Text style={styles.processText}>{p}</Text>
-            </View>
-          ))}
+          {data.process.map((p, idx) => {
+            const isFirst = idx === 0;
+            const isLast = idx === data.process.length - 1;
+            return (
+              <View key={String(idx)} style={styles.processRow}>
+                {/* Timeline column with connecting lines */}
+                <View style={styles.timelineCol}>
+                  <View style={styles.lineBox}>
+                    {!isFirst && <View style={styles.line} />}
+                  </View>
+                  <Dot />
+                  <View style={styles.lineBox}>
+                    {!isLast && <View style={styles.line} />}
+                  </View>
+                </View>
+                <Text style={styles.processText}>{p}</Text>
+              </View>
+            );
+          })}
         </View>
 
         {/* Partners with images */}
@@ -288,8 +301,12 @@ const styles = StyleSheet.create({
   serviceRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   serviceText: { color: COLORS.text, fontSize: 13 },
 
-  processRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 10 },
-  dot: { marginTop: 3, width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.accent },
+  // Process timeline
+  processRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 10, minHeight: 24 },
+  timelineCol: { width: 16, alignItems: 'center' }, // column layout by default
+  lineBox: { flex: 1, width: 2, alignItems: 'center' },
+  line: { flex: 1, width: 2, backgroundColor: COLORS.cardBorder, borderRadius: 1 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.accent },
   processText: { flex: 1, color: COLORS.text, fontSize: 13, lineHeight: 18 },
 
   partnersRow: { paddingRight: 4 },

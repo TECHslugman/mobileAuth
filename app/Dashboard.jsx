@@ -29,17 +29,17 @@ const COLORS = {
   link: '#9AA7BC',
 };
 
-
 const bodhi5 = require('../assets/agencies/bodhi5.png');
-const eduPro = require('../assets/agencies/edupro.png'); 
-const yarab = require('../assets/agencies/yarab.png'); 
+const eduPro = require('../assets/agencies/edupro.png');
+const yarab = require('../assets/agencies/yarab.png');
 const globalreach = require('../assets/agencies/globalreach.png');
+
 const INITIAL_AGENCIES = [
   {
     id: 'bodhi5',
     name: 'BODHI5',
     subtitle: 'Education Consultancy & Placement Firm',
-    image: bodhi5,     // local asset
+    image: bodhi5,
     blurb:
       'Bodhi5 Education Consultancy and Placement Firm was founded by a group of like‑minded friends who have studied in Australia…',
   },
@@ -47,7 +47,7 @@ const INITIAL_AGENCIES = [
     id: 'educationpro',
     name: 'EducationPro',
     subtitle: 'Your Door to the Future',
-    image: eduPro,     // converted PNG
+    image: eduPro,
     imageUri: '',
     blurb:
       'Application strategy, SOP review and scholarship insights with a curated partner network…',
@@ -164,7 +164,7 @@ export default function Dashboard() {
           <Image
             source={source}
             style={styles.fullImage}
-            resizeMode="contain" // switch to 'cover' to fill edge-to-edge with possible crop
+            resizeMode="contain"
           />
         ) : (
           <View style={styles.fullImage} />
@@ -251,7 +251,7 @@ export default function Dashboard() {
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="dark-content" />
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 8) }]}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top + 8, 16) }]}>
         <Text style={styles.headerTitle}>
           Choose an Agency before{'\n'}proceeding with your application.
         </Text>
@@ -291,10 +291,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     textAlign: 'center',
     color: COLORS.headerText,
-    fontSize: 16,
-    lineHeight: 22,
-    fontWeight: '600',
-    marginBottom: 10,
+    fontSize: 18,       // was 16
+    lineHeight: 26,     // was 22
+    fontWeight: '700',  // was 600
+    letterSpacing: 0.2, // subtle tracking
+    marginBottom: 12,   // a bit more breathing room
   },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   searchBox: {
@@ -357,16 +358,17 @@ const styles = StyleSheet.create({
   frontFill: { width: '100%', height: '100%' },
   fullImage: { width: '100%', height: '100%' },
 
-  // Back
+  // Back — blurb on the card itself
   backWrap: {
-    width: '92%',
-    backgroundColor: COLORS.cardBg,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    width: '100%',
+    height: '100%',
+    padding: 45, // reduced from 50 so content feels integrated
+    // removed background/border so text sits on the card
+    // backgroundColor: COLORS.cardBg,
+    // borderColor: COLORS.cardBorder,
+    // borderWidth, borderRadius intentionally not used
   },
   blurbTitle: { color: COLORS.accent, fontWeight: '700', marginBottom: 6 },
   blurbText: { color: COLORS.text, fontSize: 13, lineHeight: 18 },
-  learnMore: { marginTop: 8, alignSelf: 'flex-end', color: COLORS.link, fontWeight: '700', fontSize: 12 },
+  learnMore: {  marginRight:0 , marginTop: 20, alignSelf: 'flex-end', color: COLORS.link, fontWeight: '700', fontSize: 12 },
 });
