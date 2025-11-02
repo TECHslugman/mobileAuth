@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  FlatList,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -27,6 +28,12 @@ const COLORS = {
 const bodhi5 = require('../../assets/agencies/bodhi5.png');          // hero/banner image
 const ecuLogo = require('../../assets/partners/ecu.png');            // partner logo
 const sheridanLogo = require('../../assets/partners/sheridan.png');  // partner logo
+
+// Add more logos (create these files or update names to yours)
+const stanleyLogo = require('../../assets/partners/stanley.png');
+const curtinLogo = require('../../assets/partners/curtin.png');
+const uccollegeLogo = require('../../assets/partners/uccollege.png');
+const phoenixLogo = require('../../assets/partners/phoenix.png');
 
 // Data mock; replace or hydrate from API later
 const MOCK = {
@@ -60,9 +67,21 @@ const MOCK = {
       'Assist to get part-time jobs',
       'Post-graduation study & visa options',
     ],
+    // Extended partners list for horizontal scrolling
     partners: [
       { name: 'ECU', image: ecuLogo, imageUri: '' },
       { name: 'Sheridan', image: sheridanLogo, imageUri: '' },
+      { name: 'Stanley College', image: stanleyLogo, imageUri: '' },
+      { name: 'Curtin University', image: curtinLogo, imageUri: '' },
+      { name: 'UC College', image: uccollegeLogo, imageUri: '' },
+      { name: 'Phoenix Academy', image: phoenixLogo, imageUri: '' },
+      // add more as needed; duplicates here for demo scrolling
+      { name: 'ECU', image: ecuLogo, imageUri: '' },
+      { name: 'Sheridan', image: sheridanLogo, imageUri: '' },
+      { name: 'Stanley College', image: stanleyLogo, imageUri: '' },
+      { name: 'Curtin University', image: curtinLogo, imageUri: '' },
+      { name: 'UC College', image: uccollegeLogo, imageUri: '' },
+      { name: 'Phoenix Academy', image: phoenixLogo, imageUri: '' },
     ],
     hero: bodhi5,
     heroUri: '',
@@ -79,6 +98,19 @@ export default function AgencyDetails() {
   const data = useMemo(() => (MOCK[id] ? MOCK[id] : MOCK.bodhi5), [id]);
 
   const heroSource = data.heroUri ? { uri: data.heroUri } : data.hero;
+
+  const renderPartner = ({ item }) => {
+    const src = item.imageUri ? { uri: item.imageUri } : item.image;
+    return (
+      <View style={styles.partnerTile}>
+        {src ? (
+          <Image source={src} style={styles.partnerLogo} resizeMode="contain" />
+        ) : (
+          <Text style={styles.partnerText}>{item.name}</Text>
+        )}
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -164,32 +196,29 @@ export default function AgencyDetails() {
         {/* Partners with images */}
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitleNoMargin}>Our Partners</Text>
-          <TouchableOpacity hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+          <TouchableOpacity
+            onPress={() =>
+              router.push({ pathname: '/agency/partners/[id]', params: { id } })
+            }
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          >
             <Text style={styles.viewMore}>View more</Text>
           </TouchableOpacity>
         </View>
-        <ScrollView
+
+        {/* Horizontal FlatList for partners */}
+        <FlatList
+          data={data.partners}
+          keyExtractor={(item, index) => `${item.name}-${index}`}
+          renderItem={renderPartner}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.partnersRow}
-        >
-          {data.partners.map((p, idx) => {
-            const partnerSource = p.imageUri ? { uri: p.imageUri } : p.image;
-            return (
-              <View key={String(idx)} style={styles.partnerTile}>
-                {partnerSource ? (
-                  <Image
-                    source={partnerSource}
-                    style={styles.partnerLogo}
-                    resizeMode="contain"
-                  />
-                ) : (
-                  <Text style={styles.partnerText}>{p.name}</Text>
-                )}
-              </View>
-            );
-          })}
-        </ScrollView>
+          ItemSeparatorComponent={() => <View style={{ width: 10 }} />}
+          initialNumToRender={8}
+          windowSize={5}
+          maxToRenderPerBatch={8}
+        />
 
         {/* Spacer so bottom button doesn’t cover content */}
         <View style={{ height: 100 }} />
@@ -303,12 +332,13 @@ const styles = StyleSheet.create({
 
   // Process timeline
   processRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 10, minHeight: 24 },
-  timelineCol: { width: 16, alignItems: 'center' }, // column layout by default
+  timelineCol: { width: 16, alignItems: 'center' },
   lineBox: { flex: 1, width: 2, alignItems: 'center' },
   line: { flex: 1, width: 2, backgroundColor: COLORS.cardBorder, borderRadius: 1 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.accent },
   processText: { flex: 1, color: COLORS.text, fontSize: 13, lineHeight: 18 },
 
+  // Partners horizontal list
   partnersRow: { paddingRight: 4 },
   partnerTile: {
     height: 80,
@@ -319,7 +349,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.cardBg,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
     padding: 8,
   },
   partnerLogo: { width: '100%', height: '100%' },

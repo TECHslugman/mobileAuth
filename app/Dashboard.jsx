@@ -11,10 +11,14 @@ import {
   Pressable,
   Animated,
   StatusBar,
+  Dimensions,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Easing } from 'react-native';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const COLORS = {
   bg: '#F6F9FC',
@@ -84,9 +88,8 @@ export default function Dashboard() {
   const [isFlipped, setIsFlipped] = useState(false);
 
   // Per-card Animated values
-  const flipRefs = useRef({});   // id -> Animated.Value(0..1)
-  const scaleRefs = useRef({});  // id -> Animated.Value(1..1.02)
-
+  const flipRefs = useRef({});
+  const scaleRefs = useRef({});
   const getFlip = (id) => {
     if (!flipRefs.current[id]) flipRefs.current[id] = new Animated.Value(0);
     return flipRefs.current[id];
@@ -96,11 +99,56 @@ export default function Dashboard() {
     return scaleRefs.current[id];
   };
 
+  // Filter sheet animation (UI only; preserves your data as-is)
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const sheetAnim = useRef(new Animated.Value(0)).current; // 0 closed, 1 open
+  const overlayOpacity = sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 0.4] });
+  const sheetTranslateX = sheetAnim.interpolate({ inputRange: [0, 1], outputRange: [SCREEN_WIDTH, 0] });
+
+  const openSheet = () => {
+    setSheetOpen(true);
+    Animated.timing(sheetAnim, {
+      toValue: 1,
+      duration: 260,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  };
+  const closeSheet = () => {
+    Animated.timing(sheetAnim, {
+      toValue: 0,
+      duration: 240,
+      easing: Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    }).start(({ finished }) => finished && setSheetOpen(false));
+  };
+
+  // Chevron animations per row (collapsed UI like screenshot)
+  const rowChevron = {
+    country: useRef(new Animated.Value(0)).current,
+    level: useRef(new Animated.Value(0)).current,
+    city: useRef(new Animated.Value(0)).current,
+    rec: useRef(new Animated.Value(0)).current,
+  };
+  const rowOpen = useRef({ country: false, level: false, city: false, rec: false }).current;
+  const toggleRow = (key) => {
+    rowOpen[key] = !rowOpen[key];
+    Animated.timing(rowChevron[key], {
+      toValue: rowOpen[key] ? 1 : 0,
+      duration: 180,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  };
+  const chevronRotate = (v) =>
+    v.interpolate({ inputRange: [0, 1], outputRange: ['-90deg', '0deg'] });
+
+  // Derived list (kept to your original search behavior)
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return agencies;
     return agencies.filter(
-      a =>
+      (a) =>
         a.name.toLowerCase().includes(q) ||
         (a.subtitle || '').toLowerCase().includes(q)
     );
@@ -132,17 +180,14 @@ export default function Dashboard() {
       return;
     }
     if (selectedId !== id) {
-      // reset previous selection
       flipTo(selectedId, 0);
       animateHover(selectedId, 1);
-      // set new
       setSelectedId(id);
       setIsFlipped(false);
       getFlip(id).setValue(0);
       animateHover(id, 1.02);
       return;
     }
-    // toggle flip on same card
     if (!isFlipped) {
       setIsFlipped(true);
       flipTo(id, 1);
@@ -161,11 +206,7 @@ export default function Dashboard() {
     return (
       <View style={styles.frontFill}>
         {source ? (
-          <Image
-            source={source}
-            style={styles.fullImage}
-            resizeMode="contain"
-          />
+          <Image source={source} style={styles.fullImage} resizeMode="contain" />
         ) : (
           <View style={styles.fullImage} />
         )}
@@ -188,22 +229,10 @@ export default function Dashboard() {
     const flip = getFlip(item.id);
     const scale = getScale(item.id);
 
-    const frontRotate = flip.interpolate({
-      inputRange: [0, 1],
-      outputRange: ['0deg', '180deg'],
-    });
-    const backRotate = flip.interpolate({
-      inputRange: [0, 1],
-      outputRange: ['180deg', '360deg'],
-    });
-    const frontOpacity = flip.interpolate({
-      inputRange: [0, 0.5, 1],
-      outputRange: [1, 0, 0],
-    });
-    const backOpacity = flip.interpolate({
-      inputRange: [0, 0.5, 1],
-      outputRange: [0, 0, 1],
-    });
+    const frontRotate = flip.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
+    const backRotate = flip.interpolate({ inputRange: [0, 1], outputRange: ['180deg', '360deg'] });
+    const frontOpacity = flip.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 0, 0] });
+    const backOpacity = flip.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 0, 1] });
 
     return (
       <Pressable onPress={() => onCardPress(item.id)}>
@@ -215,7 +244,6 @@ export default function Dashboard() {
           ]}
         >
           <View style={styles.cardInner}>
-            {/* Front face */}
             <Animated.View
               pointerEvents={isSelected && isFlipped ? 'none' : 'auto'}
               style={[
@@ -229,7 +257,6 @@ export default function Dashboard() {
               <Front item={item} />
             </Animated.View>
 
-            {/* Back face */}
             <Animated.View
               pointerEvents={isSelected && isFlipped ? 'auto' : 'none'}
               style={[
@@ -247,6 +274,22 @@ export default function Dashboard() {
       </Pressable>
     );
   };
+
+  const FilterRow = ({ iconName, label, animKey }) => (
+    <TouchableOpacity
+      onPress={() => toggleRow(animKey)}
+      style={styles.filterRow}
+      activeOpacity={0.8}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Feather name={iconName} size={16} color={COLORS.accent} />
+        <Text style={styles.filterRowText}>{label}</Text>
+      </View>
+      <Animated.View style={{ transform: [{ rotate: chevronRotate(rowChevron[animKey]) }] }}>
+        <Feather name="chevron-down" size={18} color="#6B7280" />
+      </Animated.View>
+    </TouchableOpacity>
+  );
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -267,7 +310,7 @@ export default function Dashboard() {
               returnKeyType="search"
             />
           </View>
-          <TouchableOpacity style={styles.filterBtn} onPress={() => {}}>
+          <TouchableOpacity style={styles.filterBtn} onPress={openSheet}>
             <Feather name="sliders" size={18} color={COLORS.accent} />
           </TouchableOpacity>
         </View>
@@ -281,6 +324,61 @@ export default function Dashboard() {
         showsVerticalScrollIndicator={false}
         ListFooterComponent={<View style={{ height: 8 }} />}
       />
+
+      {/* Dim overlay */}
+      {sheetOpen && (
+        <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]}>
+          <Pressable style={{ flex: 1 }} onPress={closeSheet} />
+        </Animated.View>
+      )}
+
+      {/* Right filter sheet (compact, like screenshot) */}
+      {sheetOpen && (
+        <Animated.View
+          style={[
+            styles.sheet,
+            { paddingTop: Math.max(insets.top + 6, 12), transform: [{ translateX: sheetTranslateX }] },
+          ]}
+        >
+          {/* Top bar: back, centered title */}
+          <View style={styles.sheetTopRow}>
+            <TouchableOpacity onPress={closeSheet} style={styles.backBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Feather name="chevron-left" size={22} color="#52606B" />
+            </TouchableOpacity>
+            <Text style={styles.sheetTitle}>Filter</Text>
+            <View style={{ width: 32 }} />
+          </View>
+
+          {/* Search + Filter pill */}
+          <View style={styles.sheetSearchRow}>
+            <View style={styles.searchBox}>
+              <Feather name="search" size={18} color="#9CA3AF" style={{ marginRight: 8 }} />
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Search"
+                placeholderTextColor="#9CA3AF"
+                style={styles.searchInput}
+                returnKeyType="search"
+              />
+            </View>
+            <TouchableOpacity style={styles.sheetApply} onPress={closeSheet}>
+              <Text style={{ color: '#fff', fontWeight: '700' }}>Filter</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Clear all link */}
+          <TouchableOpacity onPress={closeSheet} style={{ alignSelf: 'flex-end', marginBottom: 8 }} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+            <Text style={styles.clearAll}>Clear all</Text>
+          </TouchableOpacity>
+
+          {/* Four compact rows (collapsed) */}
+          <FilterRow iconName="globe" label="Australia" animKey="country" />
+          <FilterRow iconName="book-open" label={"Bachelor's (UG)"} animKey="level" />
+          <FilterRow iconName="map-pin" label="Thimphu" animKey="city" />
+          <FilterRow iconName="star" label="Top Recommended" animKey="rec" />
+        </Animated.View>
+      )}
     </SafeAreaView>
   );
 }
@@ -291,11 +389,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     textAlign: 'center',
     color: COLORS.headerText,
-    fontSize: 18,       // was 16
-    lineHeight: 26,     // was 22
-    fontWeight: '700',  // was 600
-    letterSpacing: 0.2, // subtle tracking
-    marginBottom: 12,   // a bit more breathing room
+    fontSize: 18,
+    lineHeight: 26,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+    marginBottom: 12,
   },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   searchBox: {
@@ -305,7 +403,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.inputBg,
     borderWidth: 1,
     borderColor: COLORS.inputBorder,
-    borderRadius: 12,
+    borderRadius: 21,
     paddingHorizontal: 12,
     height: 42,
   },
@@ -313,7 +411,7 @@ const styles = StyleSheet.create({
   filterBtn: {
     height: 42,
     width: 52,
-    borderRadius: 12,
+    borderRadius: 21,
     borderWidth: 1,
     borderColor: COLORS.inputBorder,
     backgroundColor: COLORS.cardBg,
@@ -354,21 +452,65 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // Full image front
   frontFill: { width: '100%', height: '100%' },
   fullImage: { width: '100%', height: '100%' },
 
-  // Back — blurb on the card itself
   backWrap: {
     width: '100%',
     height: '100%',
-    padding: 45, // reduced from 50 so content feels integrated
-    // removed background/border so text sits on the card
-    // backgroundColor: COLORS.cardBg,
-    // borderColor: COLORS.cardBorder,
-    // borderWidth, borderRadius intentionally not used
+    padding: 45,
   },
   blurbTitle: { color: COLORS.accent, fontWeight: '700', marginBottom: 6 },
   blurbText: { color: COLORS.text, fontSize: 13, lineHeight: 18 },
-  learnMore: {  marginRight:0 , marginTop: 20, alignSelf: 'flex-end', color: COLORS.link, fontWeight: '700', fontSize: 12 },
+  learnMore: { marginRight: 0, marginTop: 20, alignSelf: 'flex-end', color: COLORS.link, fontWeight: '700', fontSize: 12 },
+
+  // Overlay + sheet
+  overlay: {
+    position: 'absolute',
+    left: 0, right: 0, top: 0, bottom: 0,
+    backgroundColor: '#000',
+  },
+  sheet: {
+    position: 'absolute',
+    right: 0, top: 0, bottom: 0,
+    width: Math.min(SCREEN_WIDTH * 0.9, 380),
+    backgroundColor: '#F7FBFF',
+    borderLeftWidth: 1,
+    borderColor: COLORS.cardBorder,
+    paddingHorizontal: 14,
+  },
+  sheetTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  backBtn: {
+    height: 32, width: 32, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#EDF2FF',
+  },
+  sheetTitle: { color: COLORS.headerText, fontWeight: '700' },
+
+  sheetSearchRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+  sheetApply: {
+    height: 42, paddingHorizontal: 16, borderRadius: 21,
+    backgroundColor: COLORS.accent, alignItems: 'center', justifyContent: 'center',
+  },
+  clearAll: { color: '#9AA7BC', fontWeight: '700', fontSize: 12 },
+
+  // Compact rows (collapsed)
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.cardBg,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+  },
+  filterRowText: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
 });
